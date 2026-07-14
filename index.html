@@ -491,10 +491,13 @@
                     ggbApplet.evalCommand(`PuntosC = Intersect(f, RectaW, ${a}, ${b})`);
                     ggbApplet.setColor('PuntosC', 34, 197, 94);
                     ggbApplet.setPointSize('PuntosC', 6);
-                    ggbApplet.evalCommand(`EjeX = Segment(PuntosC, (x(PuntosC), 0))`);
-                    ggbApplet.setLineStyle('EjeX', 2);
-                    ggbApplet.setColor('EjeX', 34, 197, 94);
+    
+                    // CORRECCIÓN: Cambiado de EjeX a LineaC
+                    ggbApplet.evalCommand(`LineaC = Segment(PuntosC, (x(PuntosC), 0))`);
+                    ggbApplet.setLineStyle('LineaC', 2);
+                    ggbApplet.setColor('LineaC', 34, 197, 94);
                 }
+
             }
         }
     </script>

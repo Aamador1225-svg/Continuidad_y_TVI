@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Guiado: Continuidad y TVI</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX para renderizado matemático -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <style>
+        .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        .slide-up { animation: slideUp 0.4s ease-out; }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Estilo personalizado para la pizarra */
+        .math-board-bg {
+            background-color: #0f172a;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto w-full flex-grow flex flex-col">
+        
+        <!-- Encabezado -->
+        <header class="mb-6 text-center shrink-0 slide-up">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-3">Reto: Detective de Funciones</h1>
+            <p class="text-slate-600 font-medium text-sm md:text-base max-w-2xl mx-auto">
+                Toma las decisiones correctas paso a paso para determinar si una función es continua, clasificar sus discontinuidades o aplicar el Teorema del Valor Intermedio.
+            </p>
+        </header>
+
+        <!-- Barra de progreso -->
+        <div class="w-full bg-slate-300 rounded-full h-3 mb-6 slide-up shadow-inner overflow-hidden">
+            <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-700 shadow-md" style="width: 0%"></div>
+        </div>
+
+        <!-- Contenedor principal del Ejercicio -->
+        <main class="flex-grow flex flex-col bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden slide-up">
+            
+            <!-- Zona de la pizarra matemática -->
+            <div class="math-board-bg p-6 md:p-8 flex-grow flex flex-col items-center justify-start overflow-y-auto custom-scroll relative min-h-[300px]" id="math-board">
+                <!-- Título del Nivel en la pizarra -->
+                <div id="level-title" class="absolute top-4 left-4 text-indigo-400 font-bold uppercase tracking-widest text-xs md:text-sm"></div>
+                <!-- Los pasos matemáticos se inyectarán aquí -->
+            </div>
+
+            <!-- Zona de interacción -->
+            <div class="p-6 md:p-8 bg-slate-50 border-t border-slate-200 shrink-0">
+                <div id="feedback-container" class="hidden mb-5 p-4 rounded-xl text-sm font-bold text-center transition-all shadow-sm border"></div>
+                
+                <h3 id="question-text" class="text-lg md:text-xl font-extrabold text-slate-800 mb-6 text-center">
+                    Cargando el reto...
+                </h3>
+                
+                <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Los botones de opciones se generarán aquí -->
+                </div>
+
+                <div id="next-level-container" class="hidden mt-6 text-center fade-in">
+                    <button onclick="nextLevel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-10 rounded-xl shadow-lg transition-transform transform hover:scale-105 active:scale-95 text-lg">
+                        Siguiente Reto ➔
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- BASE DE DATOS DE EJERCICIOS ---
+        const levels = [
+            {
+                title: "Misión 1: Verificación Estándar",
+                initialDesc: "Analicemos la función cuadrática:",
+                initialTex: "f(x) = x^2 - x + 2 \\quad \\text{en } x = 3",
+                steps: [
+                    {
+                        question: "Para verificar si f(x) es continua en x=3, ¿cuál es el PRIMER paso metodológico?",
+                        options: ["Evaluar si el límite al infinito existe", "Calcular los límites laterales", "Verificar si la función está definida en el punto, es decir, si existe f(3)", "Encontrar las asíntotas verticales"],
+                        correctOption: 2,
+                        tex: "\\text{Condición 1: } f(3) = (3)^2 - 3 + 2 = 8 \\quad \\text{(¡Existe!)}",
+                        successMsg: "¡Correcto! Siempre debemos confirmar primero que el punto pertenezca al dominio de la función."
+                    },
+                    {
+                        question: "La primera condición se cumple. Ahora debemos aplicar el SEGUNDO paso. ¿Cuál es?",
+                        options: ["Comprobar que el límite de f(x) cuando x tiende a 3 existe", "Igualar la función a cero", "Derivar la función", "Verificar si f(3) es mayor que cero"],
+                        correctOption: 0,
+                        tex: "\\text{Condición 2: } \\lim_{x \\to 3} (x^2 - x + 2) = 3^2 - 3 + 2 = 8 \\quad \\text{(¡Existe!)}",
+                        successMsg: "¡Excelente! La tendencia (el límite) también existe y es un número real."
+                    },
+                    {
+                        question: "Tenemos que f(3) = 8 y el límite también es 8. ¿Cuál es la TERCERA y última condición para concluir?",
+                        options: ["Que ambos resultados sean positivos", "Que el límite sea exactamente igual a la imagen evaluada", "Que el límite sea cero", "Ninguna de las anteriores"],
+                        correctOption: 1,
+                        tex: "\\text{Condición 3: } f(3) = \\lim_{x \\to 3} f(x) \\\\ 8 = 8",
+                        successMsg: "¡Perfecto! Como las tres condiciones se cumplen rigurosamente, concluyes que la función es CONTINUA en x=3."
+                    }
+                ]
+            },
+            {
+                title: "Misión 2: El Detective de Discontinuidades",
+                initialDesc: "Analiza el comportamiento de esta función racional:",
+                initialTex: "g(x) = \\frac{x^2 - 16}{x - 4} \\quad \\text{en } x = 4",
+                steps: [
+                    {
+                        question: "Aplicamos el Paso 1: Intentamos evaluar la función en el punto crítico, g(4). ¿Qué sucede?",
+                        options: ["Obtenemos 8", "Obtenemos infinito", "Obtenemos una indeterminación 0/0, por lo tanto g(4) NO existe", "Obtenemos 0"],
+                        correctOption: 2,
+                        tex: "\\text{Condición 1: } g(4) = \\frac{4^2 - 16}{4 - 4} = \\frac{0}{0} \\quad \\text{\\color{red}(Falla)}",
+                        successMsg: "¡Muy bien! La función NO es continua porque el punto ni siquiera existe en la gráfica."
+                    },
+                    {
+                        question: "Sabemos que es discontinua, pero debemos clasificarla. Pasamos al Paso 2: Evaluar el límite cuando x tiende a 4. ¿Cómo procedemos?",
+                        options: ["El límite no existe porque la función no existe", "Factorizamos el numerador, cancelamos y evaluamos", "Aplicamos el Teorema del Valor Intermedio", "Evaluamos directamente con 4 otra vez"],
+                        correctOption: 1,
+                        tex: "\\text{Condición 2: } \\lim_{x \\to 4} \\frac{(x-4)(x+4)}{x-4} = \\lim_{x \\to 4} (x+4) = 8 \\quad \\text{\\color{green}(Existe)}",
+                        successMsg: "¡Brillante! Al romper la indeterminación descubrimos que la tendencia (el límite) SÍ existe."
+                    },
+                    {
+                        question: "Resumen: La imagen g(4) NO existe, pero el límite de la trayectoria SÍ existe (es 8). ¿Qué tipo de discontinuidad es esta?",
+                        options: ["Discontinuidad No Evitable (Salto Infinito / Asíntota)", "No hay discontinuidad", "Discontinuidad Evitable (Hueco matemático)", "Discontinuidad de Salto Finito"],
+                        correctOption: 2,
+                        tex: "\\text{Conclusión: Discontinuidad EVITABLE en } x=4 \\\\ \\text{(La gráfica tiene un \"agujero\" en las coordenadas (4, 8))}",
+                        successMsg: "¡Felicidades, detective! Has identificado y clasificado un hueco matemático perfectamente."
+                    }
+                ]
+            },
+            {
+                title: "Misión 3: Aplicación del TVI",
+                initialDesc: "El Teorema del Valor Intermedio. El problema a resolver es:",
+                initialTex: "\\text{¿Tiene la ecuación } h(x) = x^3 + x - 1 = 0 \\\\ \\text{al menos una raíz en el intervalo cerrado } [0, 1]?",
+                steps: [
+                    {
+                        question: "Para poder usar el poderoso escudo del Teorema del Valor Intermedio (TVI), primero debemos garantizar la hipótesis principal. ¿Cuál es?",
+                        options: ["Asegurar que la función siempre sea positiva", "Comprobar que la función h(x) es continua en el intervalo [0, 1]", "Que el intervalo tenga números enteros", "Derivar la función"],
+                        correctOption: 1,
+                        tex: "\\text{Hipótesis: } h(x) = x^3 + x - 1 \\text{ es un polinomio,} \\\\ \\text{por tanto es CONTINUA en todo } \\mathbb{R} \\text{ y en } [0, 1].",
+                        successMsg: "¡Exacto! El TVI SOLO funciona en funciones que sabemos que no tienen saltos ni huecos."
+                    },
+                    {
+                        question: "Sabiendo que no hay saltos (es continua), el siguiente paso del TVI es examinar las 'alturas' en los bordes del intervalo. ¿Qué debemos calcular?",
+                        options: ["Los límites infinitos", "Las derivadas h'(0) y h'(1)", "Evaluar la función en los extremos: h(0) y h(1)", "Buscar en qué punto x da cero"],
+                        correctOption: 2,
+                        tex: "\\text{Evaluación: } \\\\ h(0) = (0)^3 + (0) - 1 = -1 \\\\ h(1) = (1)^3 + (1) - 1 = 1",
+                        successMsg: "¡Bien hecho! Ahora conocemos las alturas inicial y final del trazo."
+                    },
+                    {
+                        question: "Iniciamos a una altura de -1 (negativa) y terminamos a una altura de +1 (positiva), viajando de forma continua. Nuestro objetivo es el valor W = 0 (una raíz). ¿Qué concluye el TVI?",
+                        options: ["Como la línea es continua y pasa de negativo a positivo, es IMPOSIBLE que no cruce el 0. Existe una raíz.", "No se puede saber si existe una raíz.", "Que la raíz es exactamente 0.5", "Que la función es una asíntota."],
+                        correctOption: 0,
+                        tex: "\\text{Conclusión TVI: } -1 < 0 < 1 \\\\ \\text{Dado que } h(0) < W < h(1), \\text{ existe al menos un } c \\in (0, 1) \\\\ \\text{tal que } h(c) = 0.",
+                        successMsg: "¡Magistral! Has demostrado lógicamente la existencia de un corte en el Eje X usando teoría pura."
+                    }
+                ]
+            }
+        ];
+
+        // --- ESTADO DEL JUEGO ---
+        let currentLevelIdx = 0;
+        let currentStepIdx = 0;
+        const board = document.getElementById('math-board');
+        const levelTitle = document.getElementById('level-title');
+        const optionsGrid = document.getElementById('options-grid');
+        const questionText = document.getElementById('question-text');
+        const feedbackBox = document.getElementById('feedback-container');
+        const nextLevelBtn = document.getElementById('next-level-container');
+        const progressBar = document.getElementById('progress-bar');
+
+        // --- FUNCIONES CORE ---
+        
+        function loadLevel(levelIdx) {
+            currentLevelIdx = levelIdx;
+            currentStepIdx = 0;
+            
+            // Limpiar pizarra reteniendo el título absoluto
+            Array.from(board.children).forEach(child => {
+                if(child.id !== 'level-title') board.removeChild(child);
+            });
+
+            nextLevelBtn.classList.add('hidden');
+            hideFeedback();
+            
+            // Actualizar UI General
+            levelTitle.innerText = levels[currentLevelIdx].title;
+            const progress = ((currentLevelIdx) / levels.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            // Mostrar el bloque inicial en la pizarra
+            const initialDiv = document.createElement('div');
+            initialDiv.className = 'w-full text-center mt-8 text-slate-300 font-semibold mb-2 fade-in';
+            initialDiv.innerText = levels[currentLevelIdx].initialDesc;
+            board.appendChild(initialDiv);
+            
+            renderMathBlock(levels[currentLevelIdx].initialTex, true);
+            
+            loadStep();
+        }
+
+        function loadStep() {
+            const level = levels[currentLevelIdx];
+            
+            // Comprobar si el nivel terminó
+            if (currentStepIdx >= level.steps.length) {
+                questionText.innerHTML = `<span class="text-emerald-600">¡Reto Completado!</span>`;
+                optionsGrid.innerHTML = '';
+                
+                if (currentLevelIdx < levels.length - 1) {
+                    nextLevelBtn.classList.remove('hidden');
+                } else {
+                    progressBar.style.width = `100%`;
+                    questionText.innerHTML = "🏆 ¡Felicidades! Eres un maestro de la Continuidad y el TVI 🏆";
+                }
+                return;
+            }
+
+            const step = level.steps[currentStepIdx];
+            questionText.innerText = step.question;
+            optionsGrid.innerHTML = '';
+
+            // Generar botones para este paso
+            step.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border-2 border-indigo-100 hover:border-indigo-500 hover:bg-indigo-50 text-slate-700 font-bold text-sm md:text-base py-4 px-5 rounded-2xl transition-all shadow-sm text-left flex items-center gap-3 slide-up";
+                
+                // Letra para las opciones (A, B, C, D)
+                const letter = String.fromCharCode(65 + index);
+                btn.innerHTML = `<span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-extrabold">${letter}</span> <span>${optText}</span>`;
+                
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        function renderMathBlock(texString, isInitial = false) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `fade-in w-full text-center py-4 ${isInitial ? 'text-white text-xl md:text-2xl border-b border-slate-700 mb-4' : 'text-emerald-300 bg-slate-800/50 rounded-xl my-2 border border-slate-700'}`;
+            
+            katex.render(`\\displaystyle ${texString}`, wrapper, {
+                throwOnError: false,
+                displayMode: true
+            });
+            
+            board.appendChild(wrapper);
+            board.scrollTop = board.scrollHeight; // Bajar scroll automáticamente
+        }
+
+        function checkAnswer(selectedIndex, buttonElement) {
+            const step = levels[currentLevelIdx].steps[currentStepIdx];
+            
+            if (selectedIndex === step.correctOption) {
+                // Éxito
+                showFeedback(step.successMsg, 'success');
+                renderMathBlock(step.tex);
+                currentStepIdx++;
+                loadStep();
+            } else {
+                // Fallo
+                buttonElement.classList.add('shake', 'border-rose-500', 'bg-rose-50');
+                const wrongSpans = buttonElement.querySelectorAll('span');
+                if(wrongSpans.length > 0) wrongSpans[0].classList.replace('bg-indigo-100', 'bg-rose-200');
+                if(wrongSpans.length > 0) wrongSpans[0].classList.replace('text-indigo-700', 'text-rose-800');
+                
+                showFeedback("Esa decisión no es la correcta para este paso del análisis. ¡Piensa en las reglas y vuelve a intentarlo!", 'error');
+                
+                setTimeout(() => {
+                    buttonElement.classList.remove('shake', 'border-rose-500', 'bg-rose-50');
+                    if(wrongSpans.length > 0) wrongSpans[0].classList.replace('bg-rose-200', 'bg-indigo-100');
+                    if(wrongSpans.length > 0) wrongSpans[0].classList.replace('text-rose-800', 'text-indigo-700');
+                }, 800);
+            }
+        }
+
+        function showFeedback(msg, type) {
+            feedbackBox.innerText = msg;
+            feedbackBox.className = 'mb-5 p-4 rounded-xl text-sm md:text-base font-bold text-center transition-all shadow-sm border slide-up';
+            
+            if (type === 'success') {
+                feedbackBox.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+            } else {
+                feedbackBox.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-200');
+            }
+        }
+
+        function hideFeedback() {
+            feedbackBox.classList.add('hidden');
+        }
+
+        function nextLevel() {
+            loadLevel(currentLevelIdx + 1);
+        }
+
+        // Iniciar el juego
+        window.onload = () => {
+            loadLevel(0);
+        };
+    </script>
+</body>
+</html>

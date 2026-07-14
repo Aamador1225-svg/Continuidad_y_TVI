@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio: Continuidad y TVI</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX Base (Motor Matemático) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <!-- GeoGebra API -->
+    <script src="https://www.geogebra.org/apps/deployggb.js"></script>
+
+    <style>
+        .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #ggb-container {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .condition-box { transition: all 0.3s; }
+        .cond-pass { background-color: #f0fdf4; border-color: #bbf7d0; }
+        .cond-fail { background-color: #fef2f2; border-color: #fecaca; }
+        
+        /* Ajuste de tipografía para la teoría */
+        .prose p { margin-bottom: 1rem; line-height: 1.6; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col p-4 md:p-6">
+
+    <div class="max-w-7xl mx-auto w-full flex-grow flex flex-col">
+        
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-2">Continuidad y Teorema del Valor Intermedio</h1>
+            <p class="text-slate-600 font-medium">Conceptos teóricos, análisis de condiciones en un punto y existencia de raíces</p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-6 flex-grow h-auto lg:h-[75vh]">
+            
+            <!-- PANEL IZQUIERDO -->
+            <aside class="w-full lg:w-1/2 flex flex-col gap-4 h-full">
+                
+                <!-- PESTAÑAS DE NAVEGACIÓN -->
+                <div class="flex gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-20 shrink-0 flex-wrap md:flex-nowrap">
+                    <button id="btn-teoria" onclick="setMode('teoria')" class="flex-1 py-2 px-3 rounded-lg font-bold transition-all text-sm bg-indigo-600 text-white shadow-md">
+                        📘 Teoría
+                    </button>
+                    <button id="btn-cont" onclick="setMode('continuidad')" class="flex-1 py-2 px-3 rounded-lg font-bold transition-all text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100">
+                        🧪 Lab: Continuidad
+                    </button>
+                    <button id="btn-tvi" onclick="setMode('tvi')" class="flex-1 py-2 px-3 rounded-lg font-bold transition-all text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100">
+                        🧪 Lab: TVI
+                    </button>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PESTAÑA 0: TEORÍA                          -->
+                <!-- ========================================== -->
+                <div id="content-teoria" class="flex flex-col flex-grow bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-y-auto custom-scroll fade-in">
+                    <div class="prose max-w-none text-slate-700 text-sm md:text-base">
+                        
+                        <h2 class="text-2xl font-bold text-indigo-800 mb-4 border-b-2 border-indigo-100 pb-2">1. Continuidad de una Función</h2>
+                        <p>De manera intuitiva, una función es <b>continua</b> en un intervalo si puedes dibujar su gráfica sin levantar el lápiz del papel. Matemáticamente, decimos que una función $f$ es continua en un punto $x = c$ si se cumplen las siguientes <b>tres condiciones indispensables</b>:</p>
+                        
+                        <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-4">
+                            <ul class="font-semibold text-indigo-900 mb-0">
+                                <li>Condición 1: $f(c)$ está definida (el punto existe en la gráfica).</li>
+                                <li>Condición 2: $\lim_{x \to c} f(x)$ existe (los límites laterales coinciden).</li>
+                                <li>Condición 3: $\lim_{x \to c} f(x) = f(c)$ (la trayectoria conecta exactamente con el punto).</li>
+                            </ul>
+                        </div>
+
+                        <p>Si alguna de estas condiciones falla, la función es <b>discontinua</b> en $x = c$. Las discontinuidades se clasifican en:</p>
+                        <ul>
+                            <li><b>Evitables (Huecos):</b> El límite existe, pero $f(c)$ no existe o tiene un valor distinto. Gráficamente es un "agujero" en la curva.</li>
+                            <li><b>No Evitables (Saltos / Asíntotas):</b> El límite no existe. Puede ser un <i>salto finito</i> (los límites laterales son números distintos) o un <i>salto infinito</i> (asíntota vertical, donde la función explota hacia $\pm \infty$).</li>
+                        </ul>
+
+                        <h2 class="text-2xl font-bold text-indigo-800 mt-8 mb-4 border-b-2 border-indigo-100 pb-2">2. Teorema del Valor Intermedio (TVI)</h2>
+                        <p>El TVI es una de las propiedades más poderosas de las funciones continuas. Establece que si viajas de un punto $A$ a un punto $B$ de forma continua, obligatoriamente debes atravesar todas las alturas intermedias.</p>
+                        
+                        <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 mb-4">
+                            <p class="font-semibold text-rose-900 mb-0"><b>Definición Formal:</b> Si $f(x)$ es una función continua en un intervalo cerrado $[a, b]$, y $W$ es cualquier número entre $f(a)$ y $f(b)$, entonces existe al menos un número $c$ en el intervalo abierto $(a, b)$ tal que $f(c) = W$.</p>
+                        </div>
+
+                        <p><b>¿Para qué sirve?</b> La aplicación principal del TVI es <i>garantizar la existencia de raíces (ceros)</i> de una ecuación. Si una función es continua y cambia de signo en un intervalo (por ejemplo, $f(a)$ es negativo y $f(b)$ es positivo), el TVI garantiza que en algún punto intermedio la función debe valer exactamente cero ($W = 0$), cruzando así el eje $X$.</p>
+
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PESTAÑA 1: CONTINUIDAD                     -->
+                <!-- ========================================== -->
+                <div id="content-cont" class="hidden flex flex-col flex-grow gap-4 overflow-hidden fade-in">
+                    
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 shrink-0">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Selecciona un caso de estudio:</label>
+                        <select id="case-selector" onchange="loadContCase(this.value)" class="w-full p-3 text-base font-semibold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                            <option value="0">Caso 1: Función Continua (Cumple todo)</option>
+                            <option value="1">Caso 2: Discontinuidad Evitable (Hueco)</option>
+                            <option value="2">Caso 3: Discontinuidad No Evitable (Asíntota)</option>
+                        </select>
+                        <div id="cont-formula" class="text-xl md:text-2xl text-slate-800 font-bold text-center mt-4 py-3 bg-slate-50 rounded-xl border border-slate-100"></div>
+                    </div>
+
+                    <!-- Panel de las 3 Condiciones -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-grow overflow-y-auto custom-scroll">
+                        <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2">Evaluando las 3 condiciones en $x = c$</h3>
+                        
+                        <div class="space-y-3">
+                            <div id="cond1-box" class="condition-box border p-4 rounded-xl">
+                                <h4 class="font-bold flex items-center gap-2">
+                                    <span id="cond1-icon">⏳</span> 1. ¿Existe $f(c)$?
+                                </h4>
+                                <div id="cond1-text" class="text-sm mt-2 text-slate-600"></div>
+                            </div>
+                            <div id="cond2-box" class="condition-box border p-4 rounded-xl">
+                                <h4 class="font-bold flex items-center gap-2">
+                                    <span id="cond2-icon">⏳</span> 2. ¿Existe el límite $\lim_{x \to c} f(x)$?
+                                </h4>
+                                <div id="cond2-text" class="text-sm mt-2 text-slate-600"></div>
+                            </div>
+                            <div id="cond3-box" class="condition-box border p-4 rounded-xl">
+                                <h4 class="font-bold flex items-center gap-2">
+                                    <span id="cond3-icon">⏳</span> 3. ¿El límite es igual a la imagen?
+                                </h4>
+                                <div id="cond3-text" class="text-sm mt-2 text-slate-600"></div>
+                            </div>
+                        </div>
+
+                        <div id="cont-conclusion" class="mt-4 p-4 rounded-xl font-bold text-center border"></div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PESTAÑA 2: TEOREMA DEL VALOR INTERMEDIO    -->
+                <!-- ========================================== -->
+                <div id="content-tvi" class="hidden flex flex-col flex-grow gap-4 overflow-hidden fade-in">
+                    
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 shrink-0">
+                        <h3 class="text-lg font-bold text-indigo-700 mb-2">Simulador del TVI</h3>
+                        <p class="text-sm text-slate-600 mb-4">Verifica si existe un punto $c$ en el intervalo $[a, b]$ que alcance el valor $W$.</p>
+                        
+                        <div class="text-xl md:text-2xl text-slate-800 font-bold text-center mb-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
+                            $$ f(x) = x^3 - 3x + 1 $$
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Inicio [a]</label>
+                                <input type="number" id="tvi-a" value="0" step="0.5" class="w-full p-2 text-center font-bold border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Fin [b]</label>
+                                <input type="number" id="tvi-b" value="2" step="0.5" class="w-full p-2 text-center font-bold border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-rose-500 uppercase">Valor W</label>
+                                <input type="number" id="tvi-w" value="2" step="0.5" class="w-full p-2 text-center font-bold border-rose-300 border-2 rounded-lg focus:ring-2 focus:ring-rose-500 bg-rose-50 text-rose-700">
+                            </div>
+                        </div>
+                        <button onclick="aplicarTVI()" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-md">
+                            Verificar Hipótesis del TVI 🔍
+                        </button>
+                    </div>
+
+                    <!-- Panel de Análisis TVI -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-grow overflow-y-auto custom-scroll">
+                        <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2">Análisis de Existencia</h3>
+                        <div id="tvi-analysis" class="space-y-4 text-sm md:text-base text-slate-700">
+                            Haz clic en "Verificar" para correr el Teorema.
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- PANEL DERECHO: GeoGebra -->
+            <main class="w-full lg:w-1/2 flex flex-col relative h-[500px] lg:h-full shrink-0 lg:shrink">
+                <div id="ggb-container" class="absolute inset-0 bg-white border border-slate-200">
+                    <div id="ggb-element"></div>
+                </div>
+                <div id="ggb-loader" class="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl z-10 transition-opacity duration-300">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                    <p class="text-indigo-800 font-bold">Iniciando motor gráfico...</p>
+                </div>
+            </main>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN GLOBAL KATEX (A PRUEBA DE ERRORES)
+        // ==========================================
+        let currentMode = 'teoria';
+        let ggbAppletReady = false;
+
+        // Utilizamos $ para inline y $$ para display, evitamos problemas de barras invertidas en JS
+        const katexOpts = {
+            delimiters: [
+                {left: "$$", right: "$$", display: true},
+                {left: "$", right: "$", display: false}
+            ],
+            throwOnError: false
+        };
+
+        function renderAllMath() {
+            renderMathInElement(document.body, katexOpts);
+        }
+
+        // ==========================================
+        // CONTROL DE PESTAÑAS
+        // ==========================================
+        function setMode(mode) {
+            currentMode = mode;
+            const btnTeoria = document.getElementById('btn-teoria');
+            const btnCont = document.getElementById('btn-cont');
+            const btnTvi = document.getElementById('btn-tvi');
+            
+            const conTeoria = document.getElementById('content-teoria');
+            const conCont = document.getElementById('content-cont');
+            const conTvi = document.getElementById('content-tvi');
+
+            // Resetear estilos de botones
+            const inactiveClass = "flex-1 py-2 px-3 rounded-lg font-bold transition-all text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100";
+            const activeClass = "flex-1 py-2 px-3 rounded-lg font-bold transition-all text-sm bg-indigo-600 text-white shadow-md";
+            
+            btnTeoria.className = inactiveClass;
+            btnCont.className = inactiveClass;
+            btnTvi.className = inactiveClass;
+
+            // Ocultar todos los contenidos
+            conTeoria.classList.add('hidden');
+            conCont.classList.add('hidden');
+            conTvi.classList.add('hidden');
+
+            if (mode === 'teoria') {
+                btnTeoria.className = activeClass;
+                conTeoria.classList.remove('hidden');
+                if (ggbAppletReady) mostrarGraficoTeoria();
+            } else if (mode === 'continuidad') {
+                btnCont.className = activeClass;
+                conCont.classList.remove('hidden');
+                if (ggbAppletReady) loadContCase(document.getElementById('case-selector').value);
+            } else if (mode === 'tvi') {
+                btnTvi.className = activeClass;
+                conTvi.classList.remove('hidden');
+                if (ggbAppletReady) aplicarTVI();
+            }
+            
+            renderAllMath();
+        }
+
+        function mostrarGraficoTeoria() {
+            ggbApplet.reset();
+            ggbApplet.setCoordSystem(-3, 5, -2, 6);
+            ggbApplet.evalCommand("f(x) = sin(x) + 2");
+            ggbApplet.setColor('f', 79, 70, 229);
+            ggbApplet.setLineThickness('f', 4);
+            ggbApplet.evalCommand("Text(\"Función Continua Ejemplar\", (-2, 4))");
+        }
+
+        // ==========================================
+        // INICIALIZACIÓN DE GEOGEBRA
+        // ==========================================
+        var parameters = {
+            "id": "ggbApplet",
+            "width": 800,
+            "height": 600,
+            "showToolBar": true,
+            "showAlgebraInput": false,
+            "showMenuBar": false,
+            "useBrowserForJS": false,
+            "enableShiftDragZoom": true,
+            "language": "es",
+            "scaleContainerClass": "ggb-container",
+            "allowStyleBar": false,
+            "appletOnLoad": function() {
+                ggbAppletReady = true;
+                document.getElementById('ggb-loader').style.opacity = '0';
+                setTimeout(() => document.getElementById('ggb-loader').classList.add('hidden'), 300);
+                
+                setMode('teoria'); // Modo inicial
+            }
+        };
+
+        var applet = new GGBApplet(parameters, true);
+        window.addEventListener("load", function() {
+            applet.inject('ggb-element');
+            renderAllMath();
+        });
+
+        // ==========================================
+        // LÓGICA: PESTAÑA CONTINUIDAD
+        // ==========================================
+        const contCases = [
+            { // Caso 0: Continua
+                latex: "$$ f(x) = x^2 - 2x + 3 \\quad \\text{en } c = 2 $$",
+                ggbFunc: "x^2 - 2x + 3",
+                viewParams: { xMin: -2, xMax: 5, yMin: -1, yMax: 8 },
+                c: 2,
+                steps: {
+                    s1: { pass: true, text: "Evaluamos en el punto: $$ f(2) = (2)^2 - 2(2) + 3 = 3 $$ ¡El punto está definido!" },
+                    s2: { pass: true, text: "Evaluamos la tendencia: $$ \\lim_{x \\to 2} (x^2 - 2x + 3) = 3 $$ El límite existe." },
+                    s3: { pass: true, text: "Comparamos resultados: $$ f(2) = \\lim_{x \\to 2} f(x) = 3 $$ ¡Ambos son iguales!" },
+                    conc: { pass: true, text: "✅ La función cumple las 3 condiciones. Es CONTINUA en $x = 2$." }
+                },
+                ggbDraw: function() {
+                    ggbApplet.evalCommand("f(x) = x^2 - 2x + 3");
+                    ggbApplet.setColor('f', 79, 70, 229);
+                    ggbApplet.setLineThickness('f', 5);
+                    ggbApplet.evalCommand("P = (2, 3)");
+                    ggbApplet.setColor('P', 34, 197, 94); // Verde
+                    ggbApplet.setPointSize('P', 6);
+                }
+            },
+            { // Caso 1: Hueco
+                latex: "$$ f(x) = \\frac{x^2 - 4}{x - 2} \\quad \\text{en } c = 2 $$",
+                ggbFunc: "(x^2 - 4)/(x - 2)",
+                viewParams: { xMin: -2, xMax: 6, yMin: -2, yMax: 8 },
+                c: 2,
+                steps: {
+                    s1: { pass: false, text: "Evaluamos en el punto: $$ f(2) = \\frac{0}{0} \\quad \\text{(Indeterminado)} $$ Falla la Condición 1: El punto no existe en el dominio." },
+                    s2: { pass: true, text: "Factorizamos para el límite: $$ \\lim_{x \\to 2} \\frac{(x-2)(x+2)}{x-2} = \\lim_{x \\to 2} (x+2) = 4 $$ La tendencia (límite) sí existe." },
+                    s3: { pass: false, text: "Comparamos resultados: $$ f(2) \\neq \\lim_{x \\to 2} f(x) $$ No pueden ser iguales porque $f(2)$ no existe." },
+                    conc: { pass: false, text: "❌ Discontinuidad EVITABLE (Hay un hueco matemático en la gráfica)." }
+                },
+                ggbDraw: function() {
+                    ggbApplet.evalCommand("f(x) = (x^2 - 4)/(x - 2)");
+                    ggbApplet.setColor('f', 79, 70, 229);
+                    ggbApplet.setLineThickness('f', 5);
+                    ggbApplet.evalCommand("Hueco = (2, 4)");
+                    ggbApplet.setPointStyle('Hueco', 1); // 1 = Circulo vacío
+                    ggbApplet.setColor('Hueco', 225, 29, 72); // Rojo
+                    ggbApplet.setPointSize('Hueco', 5);
+                }
+            },
+            { // Caso 2: Asíntota
+                latex: "$$ f(x) = \\frac{1}{x - 3} \\quad \\text{en } c = 3 $$",
+                ggbFunc: "1/(x - 3)",
+                viewParams: { xMin: -2, xMax: 8, yMin: -6, yMax: 6 },
+                c: 3,
+                steps: {
+                    s1: { pass: false, text: "Evaluamos en el punto: $$ f(3) = \\frac{1}{0} \\quad \\text{(Indefinido)} $$ Falla la Condición 1: El punto no existe." },
+                    s2: { pass: false, text: "Límites laterales: $$ \\lim_{x \\to 3^-} f(x) = -\\infty, \\quad \\lim_{x \\to 3^+} f(x) = +\\infty $$ Falla la Condición 2: El límite explota al infinito." },
+                    s3: { pass: false, text: "La condición 3 no se evalúa si fallaron las anteriores." },
+                    conc: { pass: false, text: "❌ Discontinuidad NO EVITABLE (Salto Infinito / Asíntota Vertical)." }
+                },
+                ggbDraw: function() {
+                    ggbApplet.evalCommand("f(x) = 1/(x - 3)");
+                    ggbApplet.setColor('f', 79, 70, 229);
+                    ggbApplet.setLineThickness('f', 5);
+                    ggbApplet.evalCommand("Asintota: x = 3");
+                    ggbApplet.setColor('Asintota', 225, 29, 72);
+                    ggbApplet.setLineStyle('Asintota', 2); 
+                    ggbApplet.setLineThickness('Asintota', 3);
+                }
+            }
+        ];
+
+        function styleCondition(id, pass) {
+            const box = document.getElementById(id + '-box');
+            const icon = document.getElementById(id + '-icon');
+            box.className = 'condition-box border p-4 rounded-xl ' + (pass ? 'cond-pass' : 'cond-fail');
+            icon.innerText = pass ? '✅' : '❌';
+        }
+
+        function loadContCase(index) {
+            const data = contCases[index];
+            document.getElementById('cont-formula').innerHTML = data.latex;
+            
+            document.getElementById('cond1-text').innerHTML = data.steps.s1.text;
+            styleCondition('cond1', data.steps.s1.pass);
+            
+            document.getElementById('cond2-text').innerHTML = data.steps.s2.text;
+            styleCondition('cond2', data.steps.s2.pass);
+            
+            document.getElementById('cond3-text').innerHTML = data.steps.s3.text;
+            styleCondition('cond3', data.steps.s3.pass);
+
+            const conc = document.getElementById('cont-conclusion');
+            conc.innerHTML = data.steps.conc.text;
+            conc.className = 'mt-4 p-4 rounded-xl font-bold text-center border text-lg ' + 
+                            (data.steps.conc.pass ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300');
+
+            renderAllMath();
+
+            if (ggbAppletReady) {
+                ggbApplet.reset();
+                ggbApplet.setCoordSystem(data.viewParams.xMin, data.viewParams.xMax, data.viewParams.yMin, data.viewParams.yMax);
+                data.ggbDraw();
+            }
+        }
+
+        // ==========================================
+        // LÓGICA: PESTAÑA TVI
+        // ==========================================
+        function aplicarTVI() {
+            let a = parseFloat(document.getElementById('tvi-a').value);
+            let b = parseFloat(document.getElementById('tvi-b').value);
+            let w = parseFloat(document.getElementById('tvi-w').value);
+            const panel = document.getElementById('tvi-analysis');
+            
+            if (a >= b) {
+                panel.innerHTML = `<div class="p-3 bg-amber-100 text-amber-800 border-amber-300 rounded border">Error: El valor de inicio [a] debe ser menor al de fin [b].</div>`;
+                return;
+            }
+
+            const evalF = (x) => Math.pow(x, 3) - 3*x + 1;
+            let fa = evalF(a);
+            let fb = evalF(b);
+            
+            let html = "";
+            html += `<p><b>Paso 1:</b> Evaluamos los extremos del intervalo $[${a}, ${b}]$:</p>`;
+            html += `$$ f(${a}) = (${a})^3 - 3(${a}) + 1 = ${fa.toFixed(2)} $$`;
+            html += `$$ f(${b}) = (${b})^3 - 3(${b}) + 1 = ${fb.toFixed(2)} $$`;
+            
+            let minF = Math.min(fa, fb);
+            let maxF = Math.max(fa, fb);
+            let tviApplies = false;
+
+            if (w > minF && w < maxF) {
+                tviApplies = true;
+                html += `<div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mt-3 text-emerald-800">
+                            <b>Paso 2 (Hipótesis Cumplida):</b> Como la función polinómica es continua, y $W = ${w}$ está estrictamente entre $${minF.toFixed(2)}$ y $${maxF.toFixed(2)}$, 
+                            <b>El TVI garantiza</b> que la gráfica cruza la línea horizontal en al menos un punto $c$.
+                         </div>`;
+            } else {
+                html += `<div class="p-4 bg-rose-50 border border-rose-200 rounded-xl mt-3 text-rose-800">
+                            <b>Paso 2 (Falla Hipótesis):</b> El valor $W = ${w}$ NO se encuentra entre $${minF.toFixed(2)}$ y $${maxF.toFixed(2)}$. 
+                            El Teorema del Valor Intermedio no nos puede garantizar que la función cruce ese valor dentro de este intervalo específico.
+                         </div>`;
+            }
+
+            panel.innerHTML = html;
+            renderAllMath(); // Renderizamos las fórmulas dinámicas generadas.
+
+            if (ggbAppletReady) {
+                ggbApplet.reset();
+                
+                let xMargin = (b - a) * 0.5;
+                let yMargin = Math.max(Math.abs(maxF - minF), 5) * 0.5;
+                ggbApplet.setCoordSystem(a - xMargin, b + xMargin, minF - yMargin, maxF + yMargin);
+
+                ggbApplet.evalCommand("f(x) = x^3 - 3x + 1");
+                ggbApplet.setColor('f', 79, 70, 229);
+                ggbApplet.setLineThickness('f', 3);
+
+                ggbApplet.evalCommand(`Tramo = Curve(t, f(t), t, ${a}, ${b})`);
+                ggbApplet.setColor('Tramo', 14, 165, 233);
+                ggbApplet.setLineThickness('Tramo', 6);
+
+                ggbApplet.evalCommand(`A = (${a}, ${fa})`);
+                ggbApplet.evalCommand(`B = (${b}, ${fb})`);
+                ggbApplet.setColor('A', 51, 65, 85);
+                ggbApplet.setColor('B', 51, 65, 85);
+                ggbApplet.setPointSize('A', 5);
+                ggbApplet.setPointSize('B', 5);
+                ggbApplet.setLabelVisible('A', true);
+                ggbApplet.setLabelVisible('B', true);
+
+                ggbApplet.evalCommand(`RectaW: y = ${w}`);
+                ggbApplet.setColor('RectaW', 225, 29, 72);
+                ggbApplet.setLineStyle('RectaW', 2);
+                ggbApplet.setLineThickness('RectaW', 3);
+
+                if (tviApplies) {
+                    ggbApplet.evalCommand(`PuntosC = Intersect(f, RectaW, ${a}, ${b})`);
+                    ggbApplet.setColor('PuntosC', 34, 197, 94);
+                    ggbApplet.setPointSize('PuntosC', 6);
+                    ggbApplet.evalCommand(`EjeX = Segment(PuntosC, (x(PuntosC), 0))`);
+                    ggbApplet.setLineStyle('EjeX', 2);
+                    ggbApplet.setColor('EjeX', 34, 197, 94);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

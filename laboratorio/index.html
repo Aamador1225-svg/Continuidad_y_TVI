@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador Avanzado: Continuidad y TVI</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX para matemáticas estáticas en resultados -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <!-- Math.js para evaluación algebraica -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+
+    <!-- GeoGebra API -->
+    <script src="https://www.geogebra.org/apps/deployggb.js"></script>
+
+    <!-- MATHLIVE: Librería profesional para inputs matemáticos -->
+    <script src="https://unpkg.com/mathlive"></script>
+
+    <style>
+        .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #ggb-container {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        /* Estilos personalizados para las nuevas cajas matemáticas (MathLive) */
+        math-field {
+            font-size: 1.25rem;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            background-color: #ffffff;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+            /* Modifica el color del teclado virtual integrado */
+            --keyboard-zindex: 1000;
+        }
+        
+        math-field:focus-within {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .math-field-sm {
+            font-size: 1.15rem;
+            padding: 0.35rem 0.5rem;
+        }
+
+        .cond-pass { background-color: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+        .cond-fail { background-color: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col p-4 md:p-6">
+
+    <div class="max-w-7xl mx-auto w-full flex-grow flex flex-col">
+        
+        <!-- Encabezado -->
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-blue-800 mb-2">Analizador Autónomo de Funciones</h1>
+            <p class="text-slate-600 font-medium">Ingresa tus propias funciones de forma intuitiva usando el teclado matemático.</p>
+        </header>
+
+        <!-- Selector de Pestañas -->
+        <div class="flex justify-center mb-6">
+            <div class="flex gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+                <button id="btn-cont" onclick="switchTab('cont')" class="py-2 px-6 rounded-lg font-bold transition-all text-sm bg-blue-600 text-white shadow-md">
+                    1. Analizador de Continuidad
+                </button>
+                <button id="btn-tvi" onclick="switchTab('tvi')" class="py-2 px-6 rounded-lg font-bold transition-all text-sm bg-slate-50 text-slate-600 hover:bg-slate-100">
+                    2. Simulador TVI
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6 flex-grow h-auto lg:h-[70vh]">
+            
+            <!-- ========================================== -->
+            <!-- PANEL IZQUIERDO: CONTROLES Y ANÁLISIS      -->
+            <!-- ========================================== -->
+            <aside class="w-full lg:w-1/2 flex flex-col gap-4 h-full">
+                
+                <!-- PESTAÑA 1: CONTINUIDAD -->
+                <div id="tab-cont" class="flex flex-col h-full gap-4 fade-in">
+                    <!-- Formulario de Entrada -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 shrink-0">
+                        <div class="mb-4 text-sm text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-200 flex items-center gap-2">
+                            <span>💡 <strong>Tip:</strong> Usa el icono de teclado (⌨️) a la derecha de las cajas para abrir el teclado matemático avanzado.</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Numerador N(x):</label>
+                                <!-- MathLive Input -->
+                                <math-field id="cont-num">x^2 - 9</math-field>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Denominador D(x):</label>
+                                <!-- MathLive Input -->
+                                <math-field id="cont-den">x - 3</math-field>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex flex-wrap sm:flex-nowrap items-end gap-4">
+                            <div class="flex-grow w-full sm:w-auto">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Evaluar en el punto (c):</label>
+                                <div class="flex items-center">
+                                    <span class="bg-slate-100 px-3 py-2 border rounded-l-lg text-slate-600 font-bold h-full flex items-center">x =</span>
+                                    <math-field id="cont-c" class="math-field-sm" style="border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: none;">3</math-field>
+                                </div>
+                            </div>
+                            <button onclick="analizarContinuidad()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition shadow-md whitespace-nowrap h-[42px]">
+                                Analizar 🔍
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Desglose de Continuidad -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-grow overflow-y-auto custom-scroll relative">
+                        <h3 class="text-md font-bold text-slate-700 mb-4 border-b pb-2">Procedimiento (3 Condiciones)</h3>
+                        <div id="cont-error" class="hidden text-rose-600 font-bold text-center bg-rose-50 p-3 rounded-lg border border-rose-200 mb-4">Error de sintaxis en la función.</div>
+                        <div id="cont-results" class="space-y-4 hidden">
+                            <div id="cont-cond1" class="border p-4 rounded-xl transition-colors"></div>
+                            <div id="cont-cond2" class="border p-4 rounded-xl transition-colors"></div>
+                            <div id="cont-cond3" class="border p-4 rounded-xl transition-colors"></div>
+                            <div id="cont-conclusion" class="p-4 rounded-xl font-bold text-center border text-lg"></div>
+                        </div>
+                        <div id="cont-empty" class="text-slate-400 text-center italic mt-10">Ingresa las funciones y presiona "Analizar".</div>
+                    </div>
+                </div>
+
+                <!-- PESTAÑA 2: TVI -->
+                <div id="tab-tvi" class="hidden flex flex-col h-full gap-4 fade-in">
+                    <!-- Formulario de Entrada -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 shrink-0">
+                        <div class="mb-4 text-sm text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                            💡 <strong>Tip:</strong> Puedes evaluar fracciones o raíces usando el teclado virtual en las cajas [a], [b] y W.
+                        </div>
+
+                        <div class="space-y-2 mb-4">
+                            <label class="block text-xs font-bold text-slate-500 uppercase">Función Continua f(x):</label>
+                            <math-field id="tvi-func">x^3 - 2x - 5</math-field>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase text-center mb-1">Inicio [a]</label>
+                                <math-field id="tvi-a" class="math-field-sm text-center">2</math-field>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase text-center mb-1">Fin [b]</label>
+                                <math-field id="tvi-b" class="math-field-sm text-center">3</math-field>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-600 uppercase text-center mb-1">Objetivo W</label>
+                                <math-field id="tvi-w" class="math-field-sm text-center" style="background-color: #ecfdf5; border-color: #6ee7b7; border-width: 2px;">0</math-field>
+                            </div>
+                        </div>
+                        <button onclick="analizarTVI()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-lg transition shadow-md">
+                            Comprobar TVI 🔍
+                        </button>
+                    </div>
+
+                    <!-- Panel de Desglose TVI -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-grow overflow-y-auto custom-scroll relative">
+                        <h3 class="text-md font-bold text-slate-700 mb-4 border-b pb-2">Procedimiento y Demostración</h3>
+                        <div id="tvi-error" class="hidden text-rose-600 font-bold text-center bg-rose-50 p-3 rounded-lg border border-rose-200 mb-4">Error de sintaxis en la función.</div>
+                        <div id="tvi-results" class="space-y-4 hidden">
+                            <div id="tvi-step1" class="border border-slate-200 p-4 rounded-xl bg-slate-50"></div>
+                            <div id="tvi-step2" class="border p-4 rounded-xl transition-colors"></div>
+                        </div>
+                        <div id="tvi-empty" class="text-slate-400 text-center italic mt-10">Ingresa los datos y presiona "Comprobar".</div>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- ========================================== -->
+            <!-- PANEL DERECHO: GEOGEBRA                    -->
+            <!-- ========================================== -->
+            <main class="w-full lg:w-1/2 flex flex-col relative h-[400px] lg:h-full shrink-0 lg:shrink">
+                <div class="absolute inset-0 bg-white border border-slate-200 rounded-2xl shadow-sm p-2 flex flex-col">
+                    <h3 id="ggb-title" class="text-center font-bold text-slate-500 text-sm uppercase tracking-widest py-1 shrink-0">Gráfica Interactiva</h3>
+                    <div id="ggb-container" class="w-full flex-grow relative rounded-xl overflow-hidden mt-1">
+                        <div id="ggb-element"></div>
+                        <div id="ggb-loader" class="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-opacity duration-300">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                            <p class="text-blue-800 font-bold">Iniciando motor matemático...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // VARIABLES GLOBALES Y CONFIGURACIÓN
+        // ==========================================
+        let ggbAppletReady = false;
+        let currentTab = 'cont';
+
+        const katexOpts = {
+            throwOnError: false,
+            displayMode: true
+        };
+
+        const roundNum = (num) => Math.round(num * 1000) / 1000;
+
+        // ==========================================
+        // PARSER: MathLive LaTeX a Math.js / GeoGebra
+        // Esta función convierte la sintaxis visual bonita de MathLive 
+        // a instrucciones algebraicas precisas.
+        // ==========================================
+        function convertMathLiveToMathJS(latex) {
+            if (!latex) return "0";
+            
+            let s = latex.replace(/\s+/g, ''); // Limpiar espacios
+            
+            // Operadores básicos y constantes
+            s = s.replace(/\\cdot/g, '*');
+            s = s.replace(/\\times/g, '*');
+            s = s.replace(/\\pi/g, 'pi');
+            
+            // Quitar comandos de ajuste de tamaño automáticos
+            s = s.replace(/\\left/g, '');
+            s = s.replace(/\\right/g, '');
+            
+            // Manejo de Fracciones de LaTeX: \frac{A}{B} -> ((A)/(B))
+            // Usamos un bucle para manejar fracciones anidadas con precisión
+            while(s.includes('\\frac')) {
+                let idx = s.indexOf('\\frac');
+                let firstBrace = s.indexOf('{', idx);
+                if (firstBrace === -1) break;
+                
+                // Extraer el numerador "A"
+                let count = 1;
+                let endA = -1;
+                for(let i = firstBrace + 1; i < s.length; i++) {
+                    if(s[i] === '{') count++;
+                    if(s[i] === '}') count--;
+                    if(count === 0) { endA = i; break; }
+                }
+                if(endA === -1) break; // Prevención de bucles infinitos
+                
+                // Extraer el denominador "B"
+                let secondBrace = s.indexOf('{', endA);
+                let endB = -1;
+                count = 1;
+                for(let i = secondBrace + 1; i < s.length; i++) {
+                    if(s[i] === '{') count++;
+                    if(s[i] === '}') count--;
+                    if(count === 0) { endB = i; break; }
+                }
+                if(endB === -1) break;
+                
+                let A = s.substring(firstBrace + 1, endA);
+                let B = s.substring(secondBrace + 1, endB);
+                
+                // Reemplazamos \frac{A}{B} por ((A)/(B))
+                s = s.substring(0, idx) + `((${A})/(${B}))` + s.substring(endB + 1);
+            }
+            
+            // Raíces cuadradas: \sqrt{A} -> sqrt(A)
+            s = s.replace(/\\sqrt{/g, 'sqrt(');
+            s = s.replace(/\\sqrt\s*([a-zA-Z0-9])/g, 'sqrt($1)'); 
+            
+            // Potencias: ^{A} -> ^(A)
+            s = s.replace(/\^{/g, '^(');
+            
+            // Funciones trigonométricas y logarítmicas
+            s = s.replace(/\\sin/g, 'sin');
+            s = s.replace(/\\cos/g, 'cos');
+            s = s.replace(/\\tan/g, 'tan');
+            s = s.replace(/\\csc/g, 'csc');
+            s = s.replace(/\\sec/g, 'sec');
+            s = s.replace(/\\cot/g, 'cot');
+            s = s.replace(/\\ln/g, 'log');
+            s = s.replace(/\\log/g, 'log10');
+            
+            // Convertir cualquier llave sobrante en paréntesis normales
+            s = s.replace(/{/g, '(');
+            s = s.replace(/}/g, ')');
+            
+            // Quitar barras invertidas residuales
+            s = s.replace(/\\/g, '');
+            
+            return s;
+        }
+
+        // ==========================================
+        // MANEJO DE PESTAÑAS
+        // ==========================================
+        function switchTab(tab) {
+            currentTab = tab;
+
+            const btnCont = document.getElementById('btn-cont');
+            const btnTvi = document.getElementById('btn-tvi');
+            
+            if (tab === 'cont') {
+                btnCont.className = "py-2 px-6 rounded-lg font-bold transition-all text-sm bg-blue-600 text-white shadow-md";
+                btnTvi.className = "py-2 px-6 rounded-lg font-bold transition-all text-sm bg-slate-50 text-slate-600 hover:bg-slate-100";
+                document.getElementById('tab-cont').classList.remove('hidden');
+                document.getElementById('tab-tvi').classList.add('hidden');
+                document.getElementById('ggb-title').innerText = "Análisis de Continuidad";
+            } else {
+                btnTvi.className = "py-2 px-6 rounded-lg font-bold transition-all text-sm bg-emerald-600 text-white shadow-md";
+                btnCont.className = "py-2 px-6 rounded-lg font-bold transition-all text-sm bg-slate-50 text-slate-600 hover:bg-slate-100";
+                document.getElementById('tab-tvi').classList.remove('hidden');
+                document.getElementById('tab-cont').classList.add('hidden');
+                document.getElementById('ggb-title').innerText = "Teorema del Valor Intermedio (TVI)";
+            }
+
+            if(ggbAppletReady) {
+                ggbApplet.reset();
+                ggbApplet.setCoordSystem(-5, 5, -5, 5);
+            }
+        }
+
+        // ==========================================
+        // INICIALIZACIÓN DE GEOGEBRA
+        // ==========================================
+        var parameters = {
+            "id": "ggbApplet",
+            "width": 800,
+            "height": 600,
+            "showToolBar": false,
+            "showAlgebraInput": false,
+            "showMenuBar": false,
+            "useBrowserForJS": false,
+            "enableShiftDragZoom": true,
+            "language": "es",
+            "scaleContainerClass": "ggb-container",
+            "allowStyleBar": false,
+            "appletOnLoad": function() {
+                ggbAppletReady = true;
+                document.getElementById('ggb-loader').style.opacity = '0';
+                setTimeout(() => document.getElementById('ggb-loader').classList.add('hidden'), 300);
+            }
+        };
+
+        var applet = new GGBApplet(parameters, true);
+        window.addEventListener("load", function() {
+            applet.inject('ggb-element');
+        });
+
+        // ==========================================
+        // LÓGICA: ANALIZADOR DE CONTINUIDAD
+        // ==========================================
+        function analizarContinuidad() {
+            const errBox = document.getElementById('cont-error');
+            const resBox = document.getElementById('cont-results');
+            const emptyBox = document.getElementById('cont-empty');
+
+            try {
+                // Leer valores de MathLive y convertirlos a Math.js
+                const numStr = convertMathLiveToMathJS(document.getElementById('cont-num').value);
+                const denStr = convertMathLiveToMathJS(document.getElementById('cont-den').value);
+                const cInputStr = convertMathLiveToMathJS(document.getElementById('cont-c').value);
+                
+                // Evaluamos 'c' permitiendo que sea una expresión matemática (ej. \pi/2)
+                const c = math.evaluate(cInputStr);
+
+                // Validamos sintaxis
+                math.parse(numStr);
+                math.parse(denStr);
+                
+                // Evaluación estricta
+                let valN = math.evaluate(numStr, {x: c});
+                let valD = math.evaluate(denStr, {x: c});
+
+                if (Math.abs(valN) < 1e-10) valN = 0;
+                if (Math.abs(valD) < 1e-10) valD = 0;
+
+                errBox.classList.add('hidden');
+                emptyBox.classList.add('hidden');
+                resBox.classList.remove('hidden');
+
+                let cond1Pass = false, cond2Pass = false;
+                let limitVal = null;
+                let cond1Text, cond2Text, cond3Text, concText;
+                let isHole = false, isAsymptote = false;
+
+                // --- CONDICIÓN 1 ---
+                if (valD !== 0) {
+                    cond1Pass = true;
+                    let result = roundNum(valN / valD);
+                    cond1Text = `\\text{Condición 1 (Imagen): } f(${roundNum(c)}) = \\frac{${roundNum(valN)}}{${roundNum(valD)}} = ${result} \\quad \\text{(Existe)}`;
+                } else {
+                    cond1Text = `\\text{Condición 1 (Imagen): } f(${roundNum(c)}) = \\frac{${roundNum(valN)}}{0} \\quad \\text{(No existe)}`;
+                }
+
+                // --- CONDICIÓN 2 ---
+                if (valD === 0 && valN === 0) {
+                    isHole = true;
+                    let limNum = math.evaluate(`(${numStr})/(${denStr})`, {x: c + 1e-8});
+                    limitVal = roundNum(limNum);
+                    
+                    if (!isNaN(limitVal) && isFinite(limitVal)) {
+                        cond2Pass = true;
+                        cond2Text = `\\text{Condición 2 (Límite): Al factorizar la forma } \\frac{0}{0}, \\\\ \\lim_{x \\to ${roundNum(c)}} f(x) = ${limitVal} \\quad \\text{(Existe)}`;
+                    } else {
+                        cond2Text = `\\text{Condición 2 (Límite): } \\lim_{x \\to ${roundNum(c)}} f(x) = \\text{No existe}`;
+                    }
+                } else if (valD === 0 && valN !== 0) {
+                    isAsymptote = true;
+                    cond2Text = `\\text{Condición 2 (Límite): Forma } \\frac{K}{0} \\implies \\lim_{x \\to ${roundNum(c)}} f(x) = \\pm\\infty \\quad \\text{(No existe en } \\mathbb{R})`;
+                } else {
+                    limitVal = roundNum(valN / valD);
+                    cond2Pass = true;
+                    cond2Text = `\\text{Condición 2 (Límite): } \\lim_{x \\to ${roundNum(c)}} f(x) = ${limitVal} \\quad \\text{(Existe)}`;
+                }
+
+                // --- CONDICIÓN 3 ---
+                let cond3Pass = false;
+                if (cond1Pass && cond2Pass && roundNum(valN/valD) === limitVal) {
+                    cond3Pass = true;
+                    cond3Text = `\\text{Condición 3: } f(${roundNum(c)}) = \\lim_{x \\to ${roundNum(c)}} f(x) = ${limitVal} \\quad \\text{(Coinciden)}`;
+                } else {
+                    cond3Text = `\\text{Condición 3: } f(${roundNum(c)}) \\neq \\lim_{x \\to ${roundNum(c)}} f(x) \\quad \\text{(No coinciden o no existen)}`;
+                }
+
+                // --- CONCLUSIÓN ---
+                let concClass = "";
+                if (cond1Pass && cond2Pass && cond3Pass) {
+                    concText = `✅ La función es CONTINUA en x = ${roundNum(c)}`;
+                    concClass = "bg-emerald-100 border-emerald-300 text-emerald-800";
+                } else if (isHole) {
+                    concText = `❌ Discontinuidad EVITABLE en x = ${roundNum(c)} (Hay un hueco matemático)`;
+                    concClass = "bg-amber-100 border-amber-300 text-amber-800";
+                } else if (isAsymptote) {
+                    concText = `❌ Discontinuidad NO EVITABLE en x = ${roundNum(c)} (Asíntota Vertical)`;
+                    concClass = "bg-rose-100 border-rose-300 text-rose-800";
+                } else {
+                    concText = `❌ La función NO ES CONTINUA en x = ${roundNum(c)}`;
+                    concClass = "bg-rose-100 border-rose-300 text-rose-800";
+                }
+
+                const formatCond = (id, text, pass) => {
+                    const el = document.getElementById(id);
+                    el.className = `border p-4 rounded-xl transition-colors ${pass ? 'cond-pass' : 'cond-fail'}`;
+                    katex.render(text, el, katexOpts);
+                };
+                
+                formatCond('cont-cond1', cond1Text, cond1Pass);
+                formatCond('cont-cond2', cond2Text, cond2Pass);
+                formatCond('cont-cond3', cond3Text, cond3Pass);
+                
+                const concEl = document.getElementById('cont-conclusion');
+                concEl.className = `p-4 rounded-xl font-bold text-center border text-lg ${concClass}`;
+                concEl.innerText = concText;
+
+                // --- GEOGEBRA ---
+                if (ggbAppletReady) {
+                    ggbApplet.reset();
+                    
+                    let formula = `f(x) = (${numStr}) / (${denStr})`;
+                    ggbApplet.evalCommand(formula);
+                    ggbApplet.setColor('f', 37, 99, 235);
+                    ggbApplet.setLineThickness('f', 4);
+
+                    if (isHole) {
+                        ggbApplet.evalCommand(`Hueco = (${c}, ${limitVal})`);
+                        ggbApplet.setPointStyle('Hueco', 1);
+                        ggbApplet.setColor('Hueco', 225, 29, 72);
+                        ggbApplet.setPointSize('Hueco', 6);
+                        ggbApplet.setCoordSystem(c - 5, c + 5, limitVal - 5, limitVal + 5);
+                    } else if (isAsymptote) {
+                        ggbApplet.evalCommand(`Asintota: x = ${c}`);
+                        ggbApplet.setLineStyle('Asintota', 2);
+                        ggbApplet.setColor('Asintota', 225, 29, 72);
+                        ggbApplet.setLineThickness('Asintota', 3);
+                        ggbApplet.setCoordSystem(c - 5, c + 5, -10, 10);
+                    } else {
+                        ggbApplet.evalCommand(`Punto = (${c}, ${limitVal})`);
+                        ggbApplet.setColor('Punto', 22, 163, 74);
+                        ggbApplet.setPointSize('Punto', 6);
+                        ggbApplet.setCoordSystem(c - 5, c + 5, limitVal - 5, limitVal + 5);
+                    }
+                }
+
+            } catch (error) {
+                errBox.classList.remove('hidden');
+                errBox.innerText = "Error de sintaxis: Verifica tu entrada usando el teclado virtual.";
+                console.error(error);
+            }
+        }
+
+        // ==========================================
+        // LÓGICA: SIMULADOR TVI
+        // ==========================================
+        function analizarTVI() {
+            const errBox = document.getElementById('tvi-error');
+            const resBox = document.getElementById('tvi-results');
+            const emptyBox = document.getElementById('tvi-empty');
+
+            try {
+                // Traducción de MathLive a MathJS
+                const funcStr = convertMathLiveToMathJS(document.getElementById('tvi-func').value);
+                const a = math.evaluate(convertMathLiveToMathJS(document.getElementById('tvi-a').value));
+                const b = math.evaluate(convertMathLiveToMathJS(document.getElementById('tvi-b').value));
+                const w = math.evaluate(convertMathLiveToMathJS(document.getElementById('tvi-w').value));
+
+                if (a >= b) {
+                    errBox.classList.remove('hidden');
+                    errBox.innerText = "El inicio del intervalo [a] debe ser estrictamente menor al fin [b].";
+                    return;
+                }
+
+                // Verificamos validez
+                math.parse(funcStr);
+                
+                let fa = math.evaluate(funcStr, {x: a});
+                let fb = math.evaluate(funcStr, {x: b});
+                
+                fa = roundNum(fa);
+                fb = roundNum(fb);
+
+                errBox.classList.add('hidden');
+                emptyBox.classList.add('hidden');
+                resBox.classList.remove('hidden');
+
+                let minF = Math.min(fa, fb);
+                let maxF = Math.max(fa, fb);
+                let tviApplies = (w >= minF && w <= maxF);
+
+                const s1Text = `\\text{1. Evaluación de Extremos:} \\\\ f(${roundNum(a)}) = ${fa} \\\\ f(${roundNum(b)}) = ${fb}`;
+                katex.render(s1Text, document.getElementById('tvi-step1'), katexOpts);
+
+                const s2Div = document.getElementById('tvi-step2');
+                if (tviApplies) {
+                    s2Div.className = "border p-4 rounded-xl transition-colors bg-emerald-50 border-emerald-300 text-emerald-900";
+                    katex.render(`\\text{2. Verificación TVI:} \\\\ ${minF} \\leq W=(${roundNum(w)}) \\leq ${maxF} \\\\ \\\\ \\textbf{Conclusión:} \\text{ ¡Hipótesis cumplida!} \\\\ \\text{El TVI garantiza que existe un } c \\in [${roundNum(a)}, ${roundNum(b)}] \\text{ donde } f(c) = ${roundNum(w)}.`, s2Div, katexOpts);
+                } else {
+                    s2Div.className = "border p-4 rounded-xl transition-colors bg-rose-50 border-rose-300 text-rose-900";
+                    katex.render(`\\text{2. Verificación TVI:} \\\\ W=(${roundNum(w)}) \\text{ NO está entre } ${minF} \\text{ y } ${maxF} \\\\ \\\\ \\textbf{Conclusión:} \\text{ El TVI NO garantiza intersección en el intervalo. }`, s2Div, katexOpts);
+                }
+
+                // --- GEOGEBRA ---
+                if (ggbAppletReady) {
+                    ggbApplet.reset();
+                    ggbApplet.evalCommand("ClearAll[]");
+                    
+                    ggbApplet.evalCommand(`f(x) = ${funcStr}`);
+                    ggbApplet.setColor('f', 16, 185, 129);
+                    ggbApplet.setLineThickness('f', 3);
+
+                    ggbApplet.evalCommand(`A = (${a}, ${fa})`);
+                    ggbApplet.evalCommand(`B = (${b}, ${fb})`);
+                    ggbApplet.setColor('A', 30, 41, 59);
+                    ggbApplet.setColor('B', 30, 41, 59);
+                    ggbApplet.setPointSize('A', 5);
+                    ggbApplet.setPointSize('B', 5);
+                    ggbApplet.setLabelVisible('A', true);
+                    ggbApplet.setLabelVisible('B', true);
+
+                    ggbApplet.evalCommand(`Tramo = Curve(t, f(t), t, ${a}, ${b})`);
+                    ggbApplet.setColor('Tramo', 5, 150, 105);
+                    ggbApplet.setLineThickness('Tramo', 6);
+
+                    ggbApplet.evalCommand(`RectaW: y = ${w}`);
+                    ggbApplet.setColor('RectaW', 225, 29, 72);
+                    ggbApplet.setLineStyle('RectaW', 2);
+                    ggbApplet.setLineThickness('RectaW', 3);
+
+                    if (tviApplies) {
+                        ggbApplet.evalCommand(`PuntosC = Intersect(f, RectaW, ${a}, ${b})`);
+                        ggbApplet.setColor('PuntosC', 225, 29, 72);
+                        ggbApplet.setPointSize('PuntosC', 7);
+                        ggbApplet.evalCommand(`ProyC = Segment(PuntosC, (x(PuntosC), 0))`);
+                        ggbApplet.setLineStyle('ProyC', 2);
+                        ggbApplet.setColor('ProyC', 225, 29, 72);
+                    }
+
+                    let xMargin = (b - a) * 0.5;
+                    let yMargin = Math.max(Math.abs(maxF - minF), 5) * 0.5;
+                    ggbApplet.setCoordSystem(a - xMargin, b + xMargin, minF - yMargin, maxF + yMargin);
+                }
+
+            } catch (error) {
+                errBox.classList.remove('hidden');
+                errBox.innerText = "Error de sintaxis: Revisa la expresión y los parámetros con el teclado virtual.";
+            }
+        }
+    </script>
+</body>
+</html>
